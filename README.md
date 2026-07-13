@@ -5,6 +5,34 @@ to Kubernetes via a Helm chart and ArgoCD GitOps. This is the Helm-based
 sibling of [python-webapp-template](https://github.com/rftecpro-ai/python-webapp-template),
 which uses Kustomize instead.
 
+## Repository structure
+
+```
+.
+├── app.py                        # Flask app (single "/" route, returns JSON)
+├── conftest.py                   # empty; makes pytest resolve `app` as an importable module
+├── tests/
+│   └── test_app.py               # pytest suite for app.py
+├── requirements.txt               # runtime dependencies (flask, gunicorn)
+├── requirements-dev.txt           # requirements.txt + pytest, for local dev/CI
+├── Dockerfile                     # multi-arch image build, served via gunicorn
+├── VERSION                        # human-edited release version (see CI/CD below)
+├── .github/workflows/ci.yml       # test → build-and-push → update-manifest pipeline
+├── chart/                         # Helm chart ArgoCD deploys
+│   ├── Chart.yaml                 # chart metadata (name, version)
+│   ├── values.yaml                 # shared defaults (image repo, replicas, ports)
+│   ├── values-dev.yaml             # dev-environment override (deployed image tag)
+│   └── templates/
+│       ├── deployment.yaml         # Deployment template (2 replicas, port 8000)
+│       └── service.yaml            # ClusterIP Service template (80 → 8000)
+├── applications/
+│   └── argocd-app.yaml            # ArgoCD Application CRD, registers chart/ with ArgoCD
+└── README.md
+```
+
+See [CI/CD](#cicd) and [Deployment (ArgoCD / Kubernetes)](#deployment-argocd--kubernetes)
+below for how these pieces fit together.
+
 ## Local development
 
 ```bash
