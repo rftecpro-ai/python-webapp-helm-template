@@ -27,8 +27,14 @@ which uses Kustomize instead.
 │       └── service.yaml            # ClusterIP Service template (80 → 8000)
 ├── applications/
 │   └── argocd-app.yaml            # ArgoCD Application CRD, registers chart/ with ArgoCD
+├── .dockerignore                  # excludes tests/, chart/, docs, etc. from the image build context
+├── .gitignore                     # excludes __pycache__/, .venv/, .pytest_cache/, etc.
 └── README.md
 ```
+
+Not shown above: `__pycache__/` and `.pytest_cache/` are ephemeral, gitignored
+directories that Python/pytest regenerate locally — they're not part of the
+repo. `.git/` is version-control internals.
 
 See [CI/CD](#cicd) and [Deployment (ArgoCD / Kubernetes)](#deployment-argocd--kubernetes)
 below for how these pieces fit together.
