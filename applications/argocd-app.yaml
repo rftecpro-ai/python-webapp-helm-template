@@ -1,0 +1,26 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: python-webapp-helm-template
+  namespace: argocd
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/rftecpro-ai/python-webapp-helm-template.git
+    targetRevision: HEAD
+    path: chart
+    helm:
+      valueFiles:
+        - values-dev.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: python-webapp-helm-template
+
+  syncPolicy:
+    syncOptions:
+    - CreateNamespace=true
+
+    automated:
+      selfHeal: true
+      prune: true

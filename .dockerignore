@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+.git/
+.github/
+tests/
+requirements-dev.txt
+README.md
+chart/
+applications/
