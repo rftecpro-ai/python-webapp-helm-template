@@ -94,7 +94,7 @@ The push step needs these secrets set in the GitHub repo
 
 | Secret | Value |
 |---|---|
-| `DOCKERHUB_USERNAME` | Your Docker Hub username (`ffribeiro`) |
+| `DOCKERHUB_USERNAME` | Your Docker Hub username |
 | `DOCKERHUB_TOKEN` | A Docker Hub [access token](https://hub.docker.com/settings/security) (not your password) |
 
 I can't create these secrets for you (I don't have your Docker Hub credentials) —
