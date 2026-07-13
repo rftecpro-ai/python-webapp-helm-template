@@ -93,6 +93,14 @@ values files — adding another environment later (e.g. `prod`) is just a new
     └── argocd-app.yaml         # ArgoCD Application CRD, points at chart/ + values-dev.yaml
 ```
 
+| Path | Purpose |
+|---|---|
+| [`chart/templates/deployment.yaml`](chart/templates/deployment.yaml) | Deployment (2 replicas, container port 8000) |
+| [`chart/templates/service.yaml`](chart/templates/service.yaml) | ClusterIP Service, port 80 → container port 8000 |
+| [`chart/values.yaml`](chart/values.yaml) | Shared defaults for all environments |
+| [`chart/values-dev.yaml`](chart/values-dev.yaml) | Sets the deployed image tag for `dev` |
+| [`applications/argocd-app.yaml`](applications/argocd-app.yaml) | ArgoCD `Application` CRD, watches `chart/` with `values-dev.yaml` layered on top |
+
 ArgoCD auto-detects the Helm chart from `Chart.yaml` at the watched path — the
 `Application`'s `spec.source.helm.valueFiles` tells it which values file to
 layer on top of the chart's defaults. Sync policy is automated with
