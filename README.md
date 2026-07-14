@@ -61,31 +61,54 @@ docker run -p 8000:8000 ffribeiro/python-webapp-helm-template:local
 
 `.github/workflows/ci.yml` runs on every push/PR to `main`:
 
-1. **test** — installs dependencies and runs `pytest`.
-2. **build-and-push** — on push to `main` only (after tests pass), builds a
-   multi-arch (`linux/amd64`, `linux/arm64`) image and pushes it to Docker Hub
-   as `ffribeiro/python-webapp-helm-template:<VERSION>` and `:<commit-sha>`.
-3. **update-manifest** — after the image is pushed, sets `image.tag` in
-   [`chart/values-dev.yaml`](chart/values-dev.yaml) to `<commit-sha>` and
-   commits that change back to `main` (with a skip-ci marker in the commit
-   message, so it doesn't re-trigger the pipeline). This is what drives the
-   ArgoCD deployment below — every push to `main` results in that exact
-   commit's image running in the cluster.
+- **test** — installs dependencies and runs `pytest`.
+- **build-and-push** — on push to `main` only (after tests pass), builds a
+  multi-arch (`linux/amd64`, `linux/arm64`) image and pushes it to Docker Hub
+  as `ffribeiro/python-webapp-helm-template:<VERSION>` and `:<commit-sha>`.
+- **update-manifest** — after the image is pushed, sets `image.tag` in
+  [`chart/values-dev.yaml`](chart/values-dev.yaml) to `<commit-sha>` and
+  commits that change back to `main` (with a skip-ci marker, so it doesn't
+  re-trigger the pipeline). ArgoCD watches this same repo and syncs the `dev`
+  environment automatically — every push to `main` results in that exact
+  commit's image running in the cluster. There's no separate GitOps repo and
+  no `prod` overlay yet; see [Deployment](#deployment-argocd--kubernetes)
+  below for how a `prod` environment would be added.
 
-To cut a new Docker Hub release version, bump the version in the
-[`VERSION`](VERSION) file and merge to `main` — that value becomes the
-`:<VERSION>` image tag. Without a bump, every merge to `main` re-pushes the
-same version tag (pointing at the latest commit), so treat updating `VERSION`
-as the release step. This is independent of the `:<commit-sha>` tag that
-`update-manifest` deploys, which always tracks the latest commit on `main`.
+### Releasing a new version
 
-`VERSION` is the **only** file you need to edit for a release.
+Every merge to `main` already ships a `:<commit-sha>` image to `dev` via the
+pipeline above. Bumping `VERSION` is only needed when you want that build to
+also carry a stable, human-meaningful Docker Hub tag (e.g. `1.1`) instead of
+just the commit SHA.
+
+1. Branch off `main` for the change, e.g. `release/1.1` (matching the version
+   you're about to ship makes the intent obvious in the branch list, though
+   the pipeline doesn't require this naming).
+2. Make the code change and commit it.
+3. Bump [`VERSION`](VERSION) to match (e.g. `1.0` → `1.1`). Without this, the
+   `:<VERSION>` tag stays the same and just gets re-pushed pointing at the
+   new commit — the `:<commit-sha>` tag still changes correctly.
+4. Open a PR from `release/1.1` against `main` so `test` gates it before merge.
+5. Merge to `main`. CI runs `test` → `build-and-push` → `update-manifest`,
+   pushing the new image and bumping `chart/values-dev.yaml`'s tag.
+6. ArgoCD picks up the change and syncs the `dev` `Application` automatically
+   — no manual `kubectl apply` needed.
+7. Verify the rollout in `dev` (`kubectl get pods`, confirm the image tag, hit
+   the app, or check ArgoCD's sync status) before trusting the release.
+
+`VERSION` and the code change are the only files you edit for a release.
 [`chart/values.yaml`](chart/values.yaml)'s `image.tag` is just a chart
 default and is never deployed as-is (`values-dev.yaml` always overrides it).
 [`chart/values-dev.yaml`](chart/values-dev.yaml)'s `image.tag` is overwritten
 automatically by `update-manifest` on every merge to `main`, using the commit
 SHA — not the `VERSION` value. Any manual edit there gets clobbered on the
 next merge anyway.
+
+There's no `prod` environment in this repo today (see
+[Deployment](#deployment-argocd--kubernetes) below) — if one is added as a
+`values-prod.yaml` + ArgoCD `Application`, promoting to it should stay a
+separate, deliberate step (e.g. a PR bumping `values-prod.yaml`'s tag to a
+verified `dev` version), not something the pipeline does automatically.
 
 ### Required repository secrets
 
