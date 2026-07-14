@@ -112,17 +112,21 @@ verified `dev` version), not something the pipeline does automatically.
 
 ### Required repository secrets
 
-The push step needs these secrets set in the GitHub repo
+These jobs need secrets set in the GitHub repo
 (**Settings → Secrets and variables → Actions**):
 
-| Secret | Value |
-|---|---|
-| `DOCKERHUB_USERNAME` | Your Docker Hub username |
-| `DOCKERHUB_TOKEN` | A Docker Hub [access token](https://hub.docker.com/settings/security) (not your password) |
+| Secret | Used by | Value |
+|---|---|---|
+| `DOCKERHUB_USERNAME` | `build-and-push` | Your Docker Hub username |
+| `DOCKERHUB_TOKEN` | `build-and-push` | A Docker Hub [access token](https://hub.docker.com/settings/security) (not your password) |
 
-I can't create these secrets for you (I don't have your Docker Hub credentials) —
-add them manually before merging to `main`, otherwise the `build-and-push` job
-will fail at the login step.
+`update-manifest` doesn't need a secret here — it pushes back to this same
+repo using the default `GITHUB_TOKEN` (see
+[Required repository permissions](#required-repository-permissions) below).
+
+These secrets require access we don't have (your Docker Hub credentials).
+Someone with the right permissions needs to create them manually before
+merging to `main`, or the `build-and-push` job will fail at the login step.
 
 ### Required repository permissions
 
