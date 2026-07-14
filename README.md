@@ -71,7 +71,7 @@ docker run -p 8000:8000 ffribeiro/python-webapp-helm-template:local
   re-trigger the pipeline). ArgoCD watches this same repo and syncs the `dev`
   environment automatically — every push to `main` results in that exact
   commit's image running in the cluster. There's no separate GitOps repo and
-  no `prod` overlay yet; see [Deployment](#deployment-argocd--kubernetes)
+  no `values-prod.yaml` yet; see [Deploying to prod](#deploying-to-prod)
   below for how a `prod` environment would be added.
 
 ### Releasing a new version
@@ -105,7 +105,7 @@ SHA — not the `VERSION` value. Any manual edit there gets clobbered on the
 next merge anyway.
 
 There's no `prod` environment in this repo today (see
-[Deployment](#deployment-argocd--kubernetes) below) — if one is added as a
+[Deploying to prod](#deploying-to-prod) below) — if one is added as a
 `values-prod.yaml` + ArgoCD `Application`, promoting to it should stay a
 separate, deliberate step (e.g. a PR bumping `values-prod.yaml`'s tag to a
 verified `dev` version), not something the pipeline does automatically.
@@ -183,3 +183,46 @@ the drift, and syncs it to the cluster automatically.
 are shared across all environments — and merge to `main`.
 **Per-environment changes**: edit the relevant `values-<env>.yaml` instead.
 Don't `kubectl apply` by hand either way, ArgoCD will just revert it.
+
+## Deploying to prod
+
+There's no `prod` environment in this repo yet, only `chart/values-dev.yaml`.
+Setting one up is a one-time bootstrap; after that, promoting a build to prod
+is a repeatable, deliberate step, kept separate from the `main`-triggered CI
+pipeline above.
+
+### One-time setup
+
+1. Add `chart/values-prod.yaml`, modeled on
+   [`chart/values-dev.yaml`](chart/values-dev.yaml): same structure, but its
+   own `image.tag` pinned to a verified starting version (plus any other
+   prod-specific overrides, e.g. replica count).
+2. Add a second ArgoCD Application (e.g.
+   `applications/argocd-app-prod.yaml`), a copy of
+   [`applications/argocd-app.yaml`](applications/argocd-app.yaml) with its
+   own `metadata.name` and `spec.source.helm.valueFiles` pointed at
+   `values-prod.yaml` instead of `values-dev.yaml`.
+3. Register it once: `kubectl apply -f applications/argocd-app-prod.yaml`.
+4. Decide sync policy deliberately. Unlike `dev`, you likely don't want
+   prod's ArgoCD Application to auto-sync from every commit — consider
+   manual sync (omit `automated` from the sync policy), so a `dev`-only
+   change can't silently roll out to prod.
+
+### Promoting a build
+
+1. Confirm the image tag currently running in `dev` is the one you want in
+   prod (check `chart/values-dev.yaml`'s `image.tag`, `kubectl get pods -n
+   dev`, or ArgoCD's UI).
+2. Open a PR that bumps `chart/values-prod.yaml`'s `image.tag` to that same
+   tag. This is the only file that changes — `chart/values.yaml` and the
+   templates stay shared, and nothing in CI does this for you.
+3. Get the PR reviewed and merged to `main`.
+4. Sync prod: if the prod Application uses manual sync, trigger it from the
+   ArgoCD UI/CLI (`argocd app sync <prod-app-name>`); if automated, ArgoCD
+   picks it up on its own.
+5. Verify the rollout in prod the same way as dev: `kubectl get pods -n
+   prod`, confirm the image tag, hit the app, or check ArgoCD's sync status.
+
+The `:<VERSION>` and `:<commit-sha>` images built by CI are *candidates* —
+promoting one to prod is a manual, reviewed decision about *which* candidate
+is production-ready, not an automatic consequence of merging to `main`.
