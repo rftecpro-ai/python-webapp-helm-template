@@ -84,10 +84,10 @@ just the commit SHA.
 1. Branch off `main` for the change, e.g. `release/1.1` (matching the version
    you're about to ship makes the intent obvious in the branch list, though
    the pipeline doesn't require this naming).
-2. Make the code change and commit it.
-3. Bump [`VERSION`](VERSION) to match (e.g. `1.0` → `1.1`). Without this, the
+2. Bump [`VERSION`](VERSION) to match (e.g. `1.0` → `1.1`). Without this, the
    `:<VERSION>` tag stays the same and just gets re-pushed pointing at the
    new commit — the `:<commit-sha>` tag still changes correctly.
+3. Make the code change and commit both together.
 4. Open a PR from `release/1.1` against `main` so `test` gates it before merge.
 5. Merge to `main`. CI runs `test` → `build-and-push` → `update-manifest`,
    pushing the new image and bumping `chart/values-dev.yaml`'s tag.
