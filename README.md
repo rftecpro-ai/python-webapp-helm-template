@@ -124,9 +124,7 @@ These jobs need secrets set in the GitHub repo
 repo using the default `GITHUB_TOKEN` (see
 [Required repository permissions](#required-repository-permissions) below).
 
-These secrets require access we don't have (your Docker Hub credentials).
-Someone with the right permissions needs to create them manually before
-merging to `main`, or the `build-and-push` job will fail at the login step.
+The right permissions needs to create before merging to `main`, or the `build-and-push` job will fail at the login step.
 
 ### Required repository permissions
 
